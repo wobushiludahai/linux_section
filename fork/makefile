@@ -1,2 +1,2 @@
 test:
-	gcc -o test part2.c
+	gcc -o test part1.c
