@@ -2,13 +2,14 @@
  * @Description: 信号量example
  * @Author: land sea
  * @Date: 2019-12-19 18:32:13
- * @LastEditTime: 2019-12-19 20:12:18
- * @LastEditors: Please set LastEditors
+ * @LastEditTime : 2019-12-19 21:16:11
+ * @LastEditors  : Please set LastEditors
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/sem.h>
+#include <unistd.h>
 
 //联合体，用于semctl初始化
 union semun
@@ -45,7 +46,7 @@ int sem_p(int sem_id)
     if(semop(sem_id, &sbuf, 1) == -1)
     {
         perror("P operation Error");
-        return -1
+        return -1;
     }
     return 0;
 }
@@ -57,5 +58,70 @@ int sem_v(int sem_id)
 {
     struct sembuf sbuf;
 
-    sbuf.sem_num = 0;   //序号   
+    sbuf.sem_num = 0;   //序号
+    sbuf.sem_op = 1;    //V操作
+    sbuf.sem_flg = SEM_UNDO;
+
+    if(semop(sem_id, &sbuf, 1) == -1)
+    {
+        perror("V operation Error");
+        return -1;
+    }
+    return 0;
+}
+
+//删除信号量集
+int del_sem(int sem_id)
+{
+    union semun tmp;
+    if(semctl(sem_id, 0, IPC_RMID, tmp) == -1)
+    {
+        perror("Delete Semaphore Error");
+        return -1;
+    }
+    return 0;
+}
+
+int main(void)
+{
+    int sem_id;     //信号量集ID
+    key_t key;
+    pid_t pid;
+
+    //获取key值
+    if((key = ftok(".", 'z')) < 0)
+    {
+        perror("ftok error");
+        exit(1);
+    }
+
+    //创建信号量集，其中只有一个信号量
+    if((sem_id = semget(key, 1, IPC_CREAT|0666)) == -1)
+    {
+        perror("semget error");
+        exit(1);
+    }
+
+    //初始化：初值设为0资源被占用
+    init_sem(sem_id, 0);
+
+    if((pid = fork()) == -1)
+    {
+        perror("fork error");
+        exit(1);
+    }
+    else if(pid == 0)       //子进程
+    {
+        sleep(2);
+        printf("Process child: pid = %d\n", getpid());
+        sem_v(sem_id);      //释放资源
+    }
+    else                    //父进程
+    {
+        sem_p(sem_id);      //等待资源
+        printf("Process father: pid = %d\n", getpid());
+        sem_v(sem_id);      //释放资源
+        del_sem(sem_id);    //删除信号量集
+    }
+    return 0;
 }
