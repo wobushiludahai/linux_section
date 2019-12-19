@@ -32,3 +32,19 @@ int msgsnd(int msqid, const void *ptr, size_t size, int flag);
 int msgrcv(int msqid, void *ptr, size_t size, long type,int flag); （type参数表示类型） 
 // 控制消息队列：成功返回0，失败返回-1  
 int msgctl(int msqid, int cmd, struct msqid_ds *buf);  
+
+## 信号量
+信号量（semaphore）与已经介绍过的 IPC 结构不同，它是一个计数器。信号量用于实现进程间的互斥与同步，而不是用于存储进程间通信数据。  
+### 特点
+1、信号量用于进程间同步，若要在进程间传递数据需要结合共享内存。  
+2、信号量基于操作系统的 PV 操作，程序对信号量的操作都是原子操作。  
+3、每次对信号量的 PV 操作不仅限于对信号量值加 1 或减 1，而且可以加减任意正整数。  
+4、支持信号量组。 
+   
+1 #include <sys/sem.h>  
+2 // 创建或获取一个信号量组：若成功返回信号量集ID，失败返回-1  
+3 int semget(key_t key, int num_sems, int sem_flags);  
+4 // 对信号量组进行操作，改变信号量的值：成功返回0，失败返回-1  
+5 int semop(int semid, struct sembuf semoparray[], size_t numops);   
+6 // 控制信号量的相关信息  
+7 int semctl(int semid, int sem_num, int cmd, ...);
